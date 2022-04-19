@@ -15,8 +15,22 @@ class AttrPredictor(object):
 
         attr_cloth_file = open(cfg.attr_cloth_file).readlines()
         self.attr_idx2name = {}
+        self.attr_idx2type = {}
         for i, line in enumerate(attr_cloth_file[2:]):
-            self.attr_idx2name[i] = line.strip('\n').split()[0]
+            self.attr_idx2name[i], self.attr_idx2type[i] = line.strip('\n').split()
+        
+        self.typeid2name = {
+            "1": "Print",
+            "2": "Sleeve Length",
+            "3": "Length",
+            "4": "Neckline",
+            "5": "Material",
+            "6": "Fitting"
+        }
+
+        self.person_blacklist = []
+        self.upper_blacklist = ["3"]
+        self.lower_blacklist = ["2", "4"]
 
         self.tops_type = tops_type
 
@@ -39,7 +53,7 @@ class AttrPredictor(object):
                 print('[ Top%d Attribute Prediction ]' % topk)
                 self.print_attr_name(idxes)
         
-    def show_json(self, pred):
+    def show_json(self, pred, class_name):
         if isinstance(pred, torch.Tensor):
             data = pred.data.cpu().numpy()
         elif isinstance(pred, np.ndarray):
@@ -47,15 +61,31 @@ class AttrPredictor(object):
         else:
             raise TypeError('type {} cannot be calculated.'.format(type(pred)))
 
-        res = []
+        res = {}
+
+        if class_name == "person":
+            blacklist = self.person_blacklist
+        elif class_name == "upper":
+            blacklist = self.upper_blacklist
+        elif class_name == "lower":
+            blacklist = self.lower_blacklist
+
+        for idx, typename in self.typeid2name.items():
+            if not idx in blacklist:
+                res[typename] = []
 
         for i in range(pred.size(0)):
             indexes = np.argsort(data[i])[::-1]
             for topk in self.tops_type:
-                idxes = indexes[:topk]
-                for num in range(topk):
-                    res.append({
-                        "label": self.attr_idx2name[idxes[num]],
-                        "confidence": float(data[i][indexes[num]])
-                    })
+                for idx in indexes:
+                    confidence = float(data[i][idx])
+                    if confidence > 0.5:
+                        type_id = self.attr_idx2type[idx]
+                        if not type_id in blacklist:
+                            res[self.typeid2name[type_id]].append({
+                                "label": self.attr_idx2name[idx],
+                                "confidence": confidence
+                            })
+                    else:
+                        break
         return res
