@@ -15,8 +15,9 @@ class CatePredictor(object):
 
         cate_cloth_file = open(cfg.cate_cloth_file).readlines()
         self.cate_idx2name = {}
+        self.cate_idx2type = {}
         for i, line in enumerate(cate_cloth_file[2:]):
-            self.cate_idx2name[i] = line.strip('\n').split()[0]
+            self.cate_idx2name[i], self.cate_idx2type[i] = line.strip('\n').split()
 
         self.tops_type = tops_type
 
@@ -39,7 +40,7 @@ class CatePredictor(object):
                 print('[ Top%d Category Prediction ]' % topk)
                 self.print_cate_name(idxes)
 
-    def show_json(self, pred):
+    def show_json(self, pred, class_name):
         if isinstance(pred, torch.Tensor):
             data = pred.data.cpu().numpy()
         elif isinstance(pred, np.ndarray):
@@ -47,15 +48,27 @@ class CatePredictor(object):
         else:
             raise TypeError('type {} cannot be calculated.'.format(type(pred)))
 
-        res = []
+        res = {"Category": []}
+
+        if class_name == "person":
+            valid_id = "3"
+        elif class_name == "upper":
+            valid_id = "1"
+        elif class_name == "lower":
+            valid_id = "2"
 
         for i in range(pred.size(0)):
             indexes = np.argsort(data[i])[::-1]
             for topk in self.tops_type:
-                idxes = indexes[:topk]
-                for num in range(topk):
-                    res.append({
-                        "label": self.cate_idx2name[idxes[num]],
-                        "confidence": float(data[i][indexes[num]])
-                    })
+                for idx in indexes:
+                    confidence = float(data[i][idx])
+                    if confidence > 0.5:
+                        type_id = self.cate_idx2type[idx]
+                        if type_id == valid_id:
+                            res["Category"].append({
+                                "label": self.cate_idx2name[idx],
+                                "confidence": confidence
+                            })
+                    else:
+                        break
         return res

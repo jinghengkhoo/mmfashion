@@ -29,6 +29,7 @@ def apiv1():
 
     input_path = request.form['path']
     img_idx = request.form['img_idx']
+    class_name = request.form['class_name']
 
 	# predict probabilities for each attribute
     img_tensor = get_img_tensor(input_path, True)
@@ -38,12 +39,13 @@ def apiv1():
     attr_predictor = AttrPredictor(cfg.data.test)
     cate_predictor = CatePredictor(cfg.data.test)
 
+    inference_result = {}
+    inference_result.update(attr_predictor.show_json(attr_prob, class_name))
+    inference_result.update(cate_predictor.show_json(cate_prob, class_name))
+
     res = {
         "timeUsed": 0.063, "predictions": {
-            "image_"+str(img_idx): {
-                "attributes": attr_predictor.show_json(attr_prob),
-                "category": cate_predictor.show_json(cate_prob)
-            }
+            "image_"+str(img_idx): inference_result
         }, "success": True
     }
 
