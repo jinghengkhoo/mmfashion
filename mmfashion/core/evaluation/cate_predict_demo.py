@@ -72,8 +72,6 @@ class CatePredictor(object):
                     else:
                         break
                     
-        for name, lis in res.items():
-            if not lis:
-                del res[name]
+        res = {k:v for k,v in res.items() if v}
 
         return res
