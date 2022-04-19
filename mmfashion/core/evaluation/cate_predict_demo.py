@@ -71,4 +71,9 @@ class CatePredictor(object):
                             })
                     else:
                         break
+                    
+        for name, lis in res.items():
+            if not lis:
+                del res[name]
+
         return res
