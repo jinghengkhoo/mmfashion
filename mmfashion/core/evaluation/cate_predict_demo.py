@@ -60,7 +60,8 @@ class CatePredictor(object):
         for i in range(pred.size(0)):
             indexes = np.argsort(data[i])[::-1]
             for topk in self.tops_type:
-                for idx in indexes:
+                for num in range(topk):
+                    idx = indexes[num]
                     confidence = float(data[i][idx])
                     if confidence > 0.5:
                         type_id = self.cate_idx2type[idx]
