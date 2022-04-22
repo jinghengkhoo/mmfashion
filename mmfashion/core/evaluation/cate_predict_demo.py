@@ -60,19 +60,18 @@ class CatePredictor(object):
         for i in range(pred.size(0)):
             indexes = np.argsort(data[i])[::-1]
             for topk in self.tops_type:
-                for num in range(topk):
-                    idx = indexes[num]
+                counter = 0
+                for idx in indexes:
                     confidence = float(data[i][idx])
-                    if confidence > 0.5:
-                        type_id = self.cate_idx2type[idx]
-                        if type_id == valid_id:
-                            res["Category"].append({
-                                "label": self.cate_idx2name[idx],
-                                "confidence": confidence
-                            })
-                    else:
-                        break
-                    
+                    type_id = self.cate_idx2type[idx]
+                    if type_id == valid_id:
+                        res["Category"].append({
+                            "label": self.cate_idx2name[idx],
+                            "confidence": confidence
+                        })
+                        counter += 1
+                        if counter == 3:
+                            break
         res = {k:v for k,v in res.items() if v}
 
         return res
