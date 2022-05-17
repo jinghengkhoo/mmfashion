@@ -8,6 +8,8 @@ from flask import Flask, render_template, request
 from mmcv import Config
 from mmcv.runner import load_checkpoint
 
+import shutil
+
 from mmfashion.core import AttrPredictor, CatePredictor
 from mmfashion.models import build_predictor
 from mmfashion.utils import get_img_tensor
@@ -31,6 +33,8 @@ def apiv1():
     img_idx = request.form['img_idx']
     class_name = request.form['class_name']
 
+    shutil.copyfile(input_path, "/mmfashion/1.jpg")
+
 	# predict probabilities for each attribute
     img_tensor = get_img_tensor(input_path, True)
 
@@ -41,7 +45,7 @@ def apiv1():
 
     inference_result = {}
     inference_result.update(attr_predictor.show_json(attr_prob, class_name))
-    inference_result.update(cate_predictor.show_json(cate_prob, class_name))
+    inference_result.update(cate_predictor.show_json(cate_prob))
 
     res = {
         "timeUsed": 0.063, "predictions": {

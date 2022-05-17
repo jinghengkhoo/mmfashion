@@ -16,8 +16,9 @@ class CatePredictor(object):
         cate_cloth_file = open(cfg.cate_cloth_file).readlines()
         self.cate_idx2name = {}
         self.cate_idx2type = {}
+        self.cate_idx2coarse = {}
         for i, line in enumerate(cate_cloth_file[2:]):
-            self.cate_idx2name[i], self.cate_idx2type[i] = line.strip('\n').split()
+            self.cate_idx2name[i], self.cate_idx2type[i], self.cate_idx2coarse[i] = line.strip('\n').split()
 
         self.tops_type = tops_type
 
@@ -40,7 +41,7 @@ class CatePredictor(object):
                 print('[ Top%d Category Prediction ]' % topk)
                 self.print_cate_name(idxes)
 
-    def show_json(self, pred, class_name):
+    def show_json(self, pred):
         if isinstance(pred, torch.Tensor):
             data = pred.data.cpu().numpy()
         elif isinstance(pred, np.ndarray):
@@ -50,28 +51,39 @@ class CatePredictor(object):
 
         res = {"Category": []}
 
-        if class_name == "person":
-            valid_id = "3"
-        elif class_name == "upper":
-            valid_id = "1"
-        elif class_name == "lower":
-            valid_id = "2"
-
         for i in range(pred.size(0)):
             indexes = np.argsort(data[i])[::-1]
-            for topk in self.tops_type:
-                counter = 0
-                for idx in indexes:
-                    confidence = float(data[i][idx])
-                    type_id = self.cate_idx2type[idx]
-                    if type_id == valid_id:
-                        res["Category"].append({
-                            "label": self.cate_idx2name[idx],
-                            "confidence": confidence
-                        })
-                        counter += 1
-                        if counter == 3:
-                            break
+            for idx in indexes:
+                valid = 0
+                confidence = float(data[i][idx])
+                type_id = self.cate_idx2type[idx]
+                if type_id == "1" and valid != 1:
+                    res["Category"].append({
+                        "label": self.cate_idx2name[idx],
+                        "confidence": confidence,
+                        "coarse": self.cate_idx2coarse[idx]
+                    })
+                    valid = 1
+
+                elif type_id == "2" and valid != 2:
+                    res["Category"].append({
+                        "label": self.cate_idx2name[idx],
+                        "confidence": confidence,
+                        "coarse": self.cate_idx2coarse[idx]
+                    })
+                    valid = 2
+                    
+                elif type_id == "3" and valid == 0:
+                    res["Category"].append({
+                        "label": self.cate_idx2name[idx],
+                        "confidence": confidence,
+                        "coarse": self.cate_idx2coarse[idx]
+                    })
+                    break
+
+                if len(res["Category"]) == 2:
+                    break
+
         res = {k:v for k,v in res.items() if v}
 
         return res
